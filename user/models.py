@@ -28,7 +28,7 @@ class Cliente(models.Model):
 		verbose_name_plural = "Clientes"
 
 	def __str__(self):
-		return self.cpf
+		return self.user.get_full_name()
 
 	def to_dict(self, nota_months=None):
 		integrantes = Cliente.objects.filter(comunidade=self.comunidade).order_by('-moedas')
@@ -126,7 +126,7 @@ class Emprestimo(models.Model):
 		verbose_name_plural = _("Empréstimos")
 
 	def __str__(self):
-		return self.user.name
+		return self.user.user.get_full_name()
 
 CURSO_STATUS_CHOICES = (
 	('FINALIZADO', 'Finalizado'), ('DISPONIVEL', 'Disponivel'), ('ANDAMENTO', 'Em Andamento'),
