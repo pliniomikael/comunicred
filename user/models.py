@@ -1,5 +1,5 @@
-import locale
-locale.setlocale(locale.LC_TIME, 'pt_BR.utf8')
+# import locale
+# locale.setlocale(locale.LC_TIME, 'pt_BR.utf8')
 from django.contrib import admin
 
 from dateutil.relativedelta import relativedelta
@@ -30,19 +30,24 @@ class Cliente(models.Model):
 	def __str__(self):
 		return self.user.get_full_name()
 
+	@property
+	@admin.display(description='Nome Completo')
+	def nome_completo(self):
+		return self.user.get_full_name()
+
 	def to_dict(self):
 		integrantes = Cliente.objects.filter(comunidade=self.comunidade).order_by('-moedas')
 
 		notas = [nota.to_dict() for nota in self.notas_fiscais.all()]
 		return {
 			'id': self.id,
-			'fullname': self.user.get_full_name(),
+			'fullname': self.nome_completo,
 			'cpf': self.cpf,
 			'moedas': self.moedas,
 			'notas': notas,
 			'comunidade': {
 				'nome': self.comunidade.nome,
-				'integrantes': [{'id': pessoa.id, 'nome': pessoa.user.get_full_name(), 'moedas': pessoa.moedas} for pessoa in integrantes],
+				'integrantes': [{'id': pessoa.id, 'nome': pessoa.nome_completo, 'moedas': pessoa.moedas} for pessoa in integrantes],
 			},
 			'emprestimos': [emprestimo.to_dict() for emprestimo in self.emprestimos.all()],
 			'meus_cursos': [curso.to_dict() for curso in self.cursos.all()],

@@ -32,7 +32,7 @@ class NotaFiscalInline(admin.TabularInline):
 
 
 class ClienteAdmin(admin.ModelAdmin):
-    list_display = ('cpf', 'telefone', 'moedas', 'comunidade', 'status', 'map_link')
+    list_display = ('nome_completo', 'cpf', 'telefone', 'moedas', 'comunidade', 'status', 'map_link')
     list_filter = ('status',)
     search_fields = ['cpf']
 
