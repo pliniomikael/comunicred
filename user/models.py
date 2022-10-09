@@ -159,7 +159,7 @@ class Curso(models.Model):
 
 	nome = models.CharField(_("Curso"), max_length=50)
 	duracao = models.TimeField(_("Duração"), auto_now=False, auto_now_add=False)
-	image = models.ImageField(_("Capa"),)
+	image = models.ImageField(_("Capa"), blank=True, null=True)
 	status = models.BooleanField(_("Ativado/Desativado"), default=False)
 
 	class Meta:
