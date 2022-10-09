@@ -30,12 +30,10 @@ class Cliente(models.Model):
 	def __str__(self):
 		return self.user.get_full_name()
 
-	def to_dict(self, nota_months=None):
+	def to_dict(self):
 		integrantes = Cliente.objects.filter(comunidade=self.comunidade).order_by('-moedas')
-		if nota_months:
-			notas = [nota.to_dict() for nota in self.notas_fiscais.filter(data_geracao__month=nota_months['mes'], data_geracao__year=nota_months['ano'],)]
-		else:
-			notas = [nota.to_dict() for nota in self.notas_fiscais.all()]
+
+		notas = [nota.to_dict() for nota in self.notas_fiscais.all()]
 		return {
 			'id': self.id,
 			'fullname': self.user.get_full_name(),

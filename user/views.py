@@ -1,15 +1,14 @@
 from django.http import JsonResponse
 
 # Create your views here.
-from .models import User, Comunidade, Emprestimo
+from .models import Cliente
 
 def home(request):
 
-  aa = User.objects.first()
-  # nota_month = {
-  #   'mes': 10,
-  #   'ano': 2022
-  # }
-  nota_month = None
+  data = []
+  clientes = Cliente.objects.all().exclude(user__is_staff=True)
+  for cliente in clientes:
+    data.append(cliente.to_dict())
 
-  return JsonResponse({'data': aa.to_dict(nota_months=nota_month)})
+
+  return JsonResponse({'data': data})
