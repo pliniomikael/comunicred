@@ -21,6 +21,6 @@ urlpatterns = [
     path('', include('user.urls')),
 ]
 
-admin.site.site_header = "Comunicred"
+admin.site.site_header = "Administração Comunicred - Versão MVP"
 admin.site.index_title = "Administração"
 admin.site.site_title = "Bem Vindo ao Comunicred"

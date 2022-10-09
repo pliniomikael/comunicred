@@ -1,59 +1,56 @@
-from codecs import charmap_build
-from datetime import datetime
 import locale
 locale.setlocale(locale.LC_TIME, 'pt_BR.utf8')
+from django.contrib import admin
 
 from dateutil.relativedelta import relativedelta
 from django.db import models
-from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext as _
+from django.contrib.auth.models import User
+from django.db import models
 
-class User(AbstractUser):
+
+class Cliente(models.Model):
+	user = models.OneToOneField(User, verbose_name=_("Cliente"), related_name='cliente', on_delete=models.CASCADE)
+	cpf = models.CharField(_("CPF"), max_length=15, unique=True)
+	cidade = models.CharField(_("Cidade"), max_length=50, null=True, blank=True)
+	telefone = models.CharField(_("Telefone"), max_length=50, null=True, blank=True)
+	latitude = models.CharField(_("Latitude"), max_length=50, null=True, blank=True)
+	longitude = models.CharField(_("Longitude"), max_length=50, null=True, blank=True)
+	moedas = models.IntegerField(_("Moedinhas"), default=0)
 	comunidade = models.ForeignKey(
 		"user.Comunidade", verbose_name=_("Comunidade"), related_name="usuarios",
-		null=True, blank=True, on_delete=models.CASCADE
+	null=True, blank=True, on_delete=models.CASCADE
 	)
-	moedas = models.IntegerField(_("Moedinhas"), default=0)
+	status = models.BooleanField(_("Ativado/Desativado"), default=False)
 
-	@property
-	def notas_months(self):
-		notas = []
-		for nota in self.notas_fiscais.all():
-			if nota.data_geracao.strftime("%B").upper() not in notas:
-				obj = {
-					nota.data_geracao.strftime("%B").upper(): [
-						nota.to_dict()
-					]
-				}
-				breakpoint()
-				notas.append(obj)
-			else:
-				for item in notas:
-					item[nota.data_geracao.strftime("%B").upper()].append(nota.to_dict())
-		print('ola')
-		return notas
+	class Meta:
+		verbose_name = "Cliente"
+		verbose_name_plural = "Clientes"
 
+	def __str__(self):
+		return self.cpf
 
 	def to_dict(self, nota_months=None):
-		integrantes = User.objects.filter(comunidade=self.comunidade)
+		integrantes = Cliente.objects.filter(comunidade=self.comunidade).order_by('-moedas')
 		if nota_months:
 			notas = [nota.to_dict() for nota in self.notas_fiscais.filter(data_geracao__month=nota_months['mes'], data_geracao__year=nota_months['ano'],)]
 		else:
 			notas = [nota.to_dict() for nota in self.notas_fiscais.all()]
 		return {
-            'id': self.id,
-            'fullname': self.get_full_name(),
+			'id': self.id,
+			'fullname': self.user.get_full_name(),
+			'cpf': self.cpf,
 			'moedas': self.moedas,
 			'notas': notas,
-            'comunidade': {
+			'comunidade': {
 				'nome': self.comunidade.nome,
-				'integrantes': [{'id': pessoa.id, 'nome': pessoa.get_full_name(), 'moedas': pessoa.moedas} for pessoa in integrantes],
+				'integrantes': [{'id': pessoa.id, 'nome': pessoa.user.get_full_name(), 'moedas': pessoa.moedas} for pessoa in integrantes],
 			},
-            'emprestimos': [emprestimo.to_dict() for emprestimo in self.emprestimos.all()],
+			'emprestimos': [emprestimo.to_dict() for emprestimo in self.emprestimos.all()],
 			'meus_cursos': [curso.to_dict() for curso in self.cursos.all()],
 			'meu_negocio': [negocio.to_dict() for negocio in self.negocios.all()],
 
-        }
+		}
 
 class Comunidade(models.Model):
 
@@ -68,19 +65,21 @@ class Comunidade(models.Model):
 
 class Emprestimo(models.Model):
 	user = models.ForeignKey(
-		User, verbose_name=_("Colaborador"), related_name="emprestimos",
+		Cliente, verbose_name=_("Colaborador"), related_name="emprestimos",
 		related_query_name="emprestimo", on_delete=models.CASCADE)
-	valor = models.DecimalField(_("Valor Emprestimo"), max_digits=9, decimal_places=2)
+	valor = models.DecimalField(_("Valor Empréstimo"), max_digits=9, decimal_places=2)
 	parcelas = models.IntegerField(_("Parcelas"))
 	quantas_pagas = models.IntegerField(_("Quantas pagas"), null=True, blank=True)
 	finalizado = models.BooleanField(_("Finalizado"), default=False)
-	data_criação = models.DateField(_("Data de Criação do Emprestimo"), auto_now=False, auto_now_add=False)
+	data_criação = models.DateField(_("Data de Criação do Empréstimo"), auto_now=False, auto_now_add=False)
 
 	@property
+	@admin.display(description='Valor Parcelas')
 	def valor_parcela(self):
 		return float('%.2f' % (self.valor/self.parcelas))
 
 	@property
+	@admin.display(description='Crédito Dispónivel')
 	def credito_disponivel(self):
 		return self.quantas_pagas * self.valor_parcela
 
@@ -94,7 +93,6 @@ class Emprestimo(models.Model):
 
 	@property
 	def proximas_parcelas(self):
-
 		faltam_parcelas = []
 		if self.quantas_pagas > 0:
 			mes_atual = self.data_criação + relativedelta(months=self.quantas_pagas)
@@ -124,18 +122,18 @@ class Emprestimo(models.Model):
         }
 
 	class Meta:
-		verbose_name = _("Emprestimo")
-		verbose_name_plural = _("Emprestimos")
+		verbose_name = _("Empréstimo")
+		verbose_name_plural = _("Empréstimos")
 
 	def __str__(self):
-		return self.user.username
+		return self.user.name
 
 CURSO_STATUS_CHOICES = (
 	('FINALIZADO', 'Finalizado'), ('DISPONIVEL', 'Disponivel'), ('ANDAMENTO', 'Em Andamento'),
 )
 class MeuCurso(models.Model):
 
-	user = models.ForeignKey(User, verbose_name=_("Usuario"), related_name="cursos",
+	user = models.ForeignKey(Cliente, verbose_name=_("Usuario"), related_name="cursos",
 		related_query_name="curso", on_delete=models.CASCADE
 	)
 	curso = models.ForeignKey("user.Curso", verbose_name=_("Meus Cursos"), on_delete=models.CASCADE)
@@ -173,15 +171,17 @@ class Curso(models.Model):
 
 
 class MeuNegocio(models.Model):
-	user = models.ForeignKey(User, verbose_name=_("Meu Negocio"), related_name="negocios",
+	user = models.ForeignKey(Cliente, verbose_name=_("Meu Negocio"), related_name="negocios",
 		related_query_name="negocio", on_delete=models.CASCADE)
 	nome = models.CharField(_("Nome"), max_length=50)
 
 	@property
+	@admin.display(description='Saldo')
 	def saldo(self):
 		return float('%.2f' % (self.total_entrada - self.total_saida))
 
 	@property
+	@admin.display(description='Total Entradas')
 	def total_entrada(self):
 		total = 0
 		for item in self.transacoes.filter(tipo='ENTRADA'):
@@ -189,6 +189,7 @@ class MeuNegocio(models.Model):
 		return float('%.2f' % total)
 
 	@property
+	@admin.display(description='Total Saída')
 	def total_saida(self):
 		total = 0
 		for item in self.transacoes.filter(tipo='SAIDA'):
@@ -196,8 +197,8 @@ class MeuNegocio(models.Model):
 		return float('%.2f' % total)
 
 	class Meta:
-		verbose_name = _("MeuNegocio")
-		verbose_name_plural = _("MeuNegocios")
+		verbose_name = _("Meu Negocio")
+		verbose_name_plural = _("Meus Negocios")
 
 	def to_dict(self):
 		return {
@@ -226,15 +227,15 @@ class Transacao(models.Model):
 	descricao = models.CharField(_("Descricao"), max_length=50, null=True, blank=True)
 
 	class Meta:
-		verbose_name = _("Transacao")
-		verbose_name_plural = _("Transacoes")
+		verbose_name = _("Transação")
+		verbose_name_plural = _("Transações")
 
 	def __str__(self):
 		return ("%s - %s - %s" % (self.negocio.nome, self.valor, self.tipo))
 
 
 class NotaFiscal(models.Model):
-	user = models.ForeignKey(User, verbose_name=_("Usuario"), related_name="notas_fiscais",
+	user = models.ForeignKey(Cliente, verbose_name=_("Usuario"), related_name="notas_fiscais",
 		related_query_name="nota_fiscal", on_delete=models.CASCADE)
 	nome_estabelecimento = models.CharField(_("Nome do Estabelecimento"), max_length=50)
 	numero_nota = models.CharField(_("Numero da Nota"), max_length=50)
@@ -243,8 +244,8 @@ class NotaFiscal(models.Model):
 	url = models.URLField(_("Url"), max_length=500)
 
 	class Meta:
-		verbose_name = _("NotaFiscal")
-		verbose_name_plural = _("NotaFiscals")
+		verbose_name = _("Nota Fiscal")
+		verbose_name_plural = _("Notas Fiscais")
 
 	def __str__(self):
 		return self.nome_estabelecimento
