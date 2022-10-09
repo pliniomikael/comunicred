@@ -1,5 +1,5 @@
-# import locale
-# locale.setlocale(locale.LC_TIME, 'pt_BR.utf8')
+import locale
+locale.setlocale(locale.LC_TIME, 'pt_BR.utf8')
 from django.contrib import admin
 
 from dateutil.relativedelta import relativedelta
